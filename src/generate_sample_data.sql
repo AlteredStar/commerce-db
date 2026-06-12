@@ -1,23 +1,11 @@
--- Customer accounts
-DROP TABLE IF EXISTS customers.users;
-CREATE TABLE IF NOT EXISTS customers.users (
-	user_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	username VARCHAR(50) NOT NULL,
-	email VARCHAR(50) UNIQUE NOT NULL
-);
+-- Populate tables with sample data
 
+-- Populate customer accounts
 INSERT INTO customers.users (username, email)
 SELECT 'user_' || i, 'user_' || i || '@example.com'
 FROM generate_series(1, 10000) AS i;
 
--- Product categories
-DROP TABLE IF EXISTS inventory.categories;
-CREATE TABLE IF NOT EXISTS inventory.categories (
-	category_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	name VARCHAR(100) NOT NULL,
-    description TEXT
-);
-
+-- Populate product categories
 INSERT INTO inventory.categories (name, description) VALUES
 ('Electronics', 'Electronic devices and accessories'),
 ('Cosmetics', 'Makeup and skincare products'),
@@ -27,17 +15,7 @@ INSERT INTO inventory.categories (name, description) VALUES
 ('Home', 'Furniture and home improvement items'),
 ('Jewelry', 'Accessories and ornaments');
 
--- Products
-DROP TABLE IF EXISTS inventory.products CASCADE;
-CREATE TABLE IF NOT EXISTS inventory.products (
-	product_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	category_id INT REFERENCES inventory.categories(category_id),
-	name VARCHAR(100) NOT NULL,
-	description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    stock INT NOT NULL
-);
-
+-- Populate products
 INSERT INTO inventory.products (category_id, name, description, price, stock)
 SELECT
     c.category_id,
@@ -54,15 +32,7 @@ CROSS JOIN LATERAL (
     LIMIT 1
 ) AS c;
 
--- Orders
-DROP TABLE IF EXISTS sales.orders CASCADE;
-CREATE TABLE IF NOT EXISTS sales.orders (
-    order_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id INT REFERENCES customers.users(user_id),
-    status VARCHAR(20) DEFAULT 'Pending',
-    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
+-- Populate orders
 INSERT INTO sales.orders (user_id, status, order_date)
 SELECT
     u.user_id,
@@ -77,15 +47,7 @@ CROSS JOIN LATERAL (
     LIMIT 1
 ) AS u;
 
--- Items in Order
-DROP TABLE IF EXISTS sales.order_items CASCADE;
-CREATE TABLE IF NOT EXISTS sales.order_items (
-    order_items_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    order_id INT REFERENCES sales.orders(order_id) ON DELETE CASCADE,
-    product_id INT REFERENCES inventory.products(product_id),
-    quantity INT NOT NULL
-);
-
+-- Populate each order with an item
 INSERT INTO sales.order_items (order_id, product_id, quantity)
 SELECT 
     order_id, 
@@ -99,6 +61,7 @@ CROSS JOIN LATERAL (
     ORDER BY RANDOM() 
     LIMIT 1
 ) AS p;
+-- Populate random orders with items
 INSERT INTO sales.order_items (order_id, product_id, quantity)
 SELECT
     o.order_id,
@@ -120,16 +83,7 @@ CROSS JOIN LATERAL (
     LIMIT 1
 ) AS p;
 
--- Payments
-DROP TABLE IF EXISTS sales.payments CASCADE;
-CREATE TABLE IF NOT EXISTS sales.payments (
-    payment_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    order_id INT REFERENCES sales.orders(order_id),
-    amount_paid DECIMAL(10, 2),
-    status VARCHAR(20) DEFAULT 'Pending',
-    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
+-- Populate payments
 INSERT INTO sales.payments (order_id, amount_paid, status, payment_date)
 SELECT
     sales.orders.order_id,
